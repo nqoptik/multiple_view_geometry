@@ -1,25 +1,26 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
 #include <ctime>
+#include <fstream>
+#include <iostream>
+#include <vector>
 
+#include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/xfeatures2d.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
 
-#include "multiple_view_geometry/norm.hpp"
+#include "multiple_view_geometry/featuresmatching.hpp"
 #include "multiple_view_geometry/geometry.hpp"
 #include "multiple_view_geometry/loadimages.hpp"
-#include "multiple_view_geometry/featuresmatching.hpp"
+#include "multiple_view_geometry/norm.hpp"
 
 /*Constants*/
 const int maxNumOfImages = 50;
 const cv::Mat_<double> detectingCamera = (cv::Mat_<double>(3, 3) << 8.3464596451385648e+002, 0, 575.5, 0, 8.3464596451385648e+002, 431.5, 0, 0, 1);
 const cv::Mat_<double> detectingDist_Coef = (cv::Mat_<double>(5, 1) << 2.8838084797262502e-002, -3.0375194693353030e-001, 0, 0, 6.6942909508394288e-001);
 
-struct PointInCL {
+struct PointInCL
+{
     cv::Point3d position;
     uchar r, g, b;
     int refer;
@@ -33,7 +34,8 @@ void importModel(std::vector<PointInCL>& cloud, std::string path);
 void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int first, int last);
 
 /*Main function*/
-int main() {
+int main()
+{
     std::vector<PointInCL> glbCloud;
 
     std::cout << "Pose estimation." << std::endl;
@@ -43,14 +45,17 @@ int main() {
     return 0;
 }
 
-void importModel(std::vector<PointInCL>& cloud, std::string path) {
+void importModel(std::vector<PointInCL>& cloud, std::string path)
+{
     cloud.clear();
     const char* path_str = path.c_str();
     std::ifstream cloudFile(path_str);
-    if (cloudFile.is_open()) {
+    if (cloudFile.is_open())
+    {
         int noPoints;
         cloudFile >> noPoints;
-        for (int i = 0; i < noPoints; i++) {
+        for (int i = 0; i < noPoints; i++)
+        {
             PointInCL pICL;
             cloudFile >> pICL.position.x;
             cloudFile >> pICL.position.y;
@@ -66,7 +71,8 @@ void importModel(std::vector<PointInCL>& cloud, std::string path) {
             cloudFile >> pICL.kp.pt.y;
             cloudFile >> pICL.refer;
             pICL.des = cv::Mat::zeros(1, 128, CV_32F);
-            for (int j = 0; j < 128; j++) {
+            for (int j = 0; j < 128; j++)
+            {
                 cloudFile >> pICL.des.at<float>(0, j);
             }
             cloud.push_back(pICL);
@@ -75,10 +81,12 @@ void importModel(std::vector<PointInCL>& cloud, std::string path) {
     }
 }
 
-void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int first, int last) {
+void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int first, int last)
+{
     cv::Mat cloudDes;
     std::vector<cv::KeyPoint> cloudKp;
-    for (unsigned int i = 0; i < glbCloud.size(); i++) {
+    for (unsigned int i = 0; i < glbCloud.size(); i++)
+    {
         cloudDes.push_back(glbCloud[i].des);
         cloudKp.push_back(glbCloud[i].kp);
     }
@@ -155,7 +163,8 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
 
     cv::Mat image = cv::imread("nestcafe_build/00000.png");
     int scene_count = 0;
-    for (int i = first; i < last; i++) {
+    for (int i = first; i < last; i++)
+    {
         std::cout << "Detecting..." << std::endl;
         std::string imgPath = path;
         std::string imgName = intToImageName(i, ".png");
@@ -180,7 +189,8 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
         double t3 = clock();
         std::vector<cv::Point3d> p3ds;
         std::vector<cv::Point2d> p2ds;
-        for (unsigned int i = 0; i < corMatches.size(); i++) {
+        for (unsigned int i = 0; i < corMatches.size(); i++)
+        {
             p3ds.push_back(glbCloud[corMatches[i].queryIdx].position);
             p2ds.push_back(kpFrame[corMatches[i].trainIdx].pt);
         }
@@ -189,11 +199,13 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
 
         cv::Mat_<double> bestPRT;
         int max_inliners = 0;
-        for (int loop = 0; loop < 1000; loop++) {
+        for (int loop = 0; loop < 1000; loop++)
+        {
             cv::Mat_<double> tvec, rvec, R_;
             std::vector<cv::Point3d> p3ds_loop;
             std::vector<cv::Point2d> p2ds_loop;
-            for (int require = 0; require < 5; require++) {
+            for (int require = 0; require < 5; require++)
+            {
                 int idx_ = rand() % p3ds.size();
                 p3ds_loop.push_back(p3ds[idx_]);
                 p2ds_loop.push_back(p2ds[idx_]);
@@ -205,7 +217,8 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
                    R_(1, 0), R_(1, 1), R_(1, 2), tvec(1, 0),
                    R_(2, 0), R_(2, 1), R_(2, 2), tvec(2, 0));
             int count_true = 0;
-            for (unsigned int i = 0; i < p3ds.size(); i++) {
+            for (unsigned int i = 0; i < p3ds.size(); i++)
+            {
                 cv::Mat_<double> P3D = (cv::Mat_<double>(4, 1) << p3ds[i].x,
                                         p3ds[i].y,
                                         p3ds[i].z,
@@ -215,12 +228,14 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
                                               P2D.at<double>(1, 0) / P2D.at<double>(2, 0));
                 double reproError = norm_2d(p2d, p2ds[i]);
 
-                if (reproError < 2.0) {
+                if (reproError < 2.0)
+                {
                     count_true++;
                 }
             }
 
-            if (count_true > max_inliners) {
+            if (count_true > max_inliners)
+            {
                 max_inliners = count_true;
                 bestPRT = PRT;
             }

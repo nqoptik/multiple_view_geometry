@@ -1,10 +1,12 @@
 #include "multiple_view_geometry/geometry.hpp"
 
-cv::Point3d cvCross(cv::Point3d a, cv::Point3d b) {
+cv::Point3d cvCross(cv::Point3d a, cv::Point3d b)
+{
     return cv::Point3d(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 
-cv::Mat_<double> cvRotationBetweenVectors(cv::Point3d a, cv::Point3d b) {
+cv::Mat_<double> cvRotationBetweenVectors(cv::Point3d a, cv::Point3d b)
+{
     cv::Point3d v = cvCross(a, b);
     double s = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     cv::Mat_<double> I = (cv::Mat_<double>(3, 3) << 1, 0, 0,
@@ -20,7 +22,8 @@ cv::Mat_<double> cvRotationBetweenVectors(cv::Point3d a, cv::Point3d b) {
     return I + vec + vec * vec * (1 - c) / s / s;
 }
 
-cv::Mat_<double> cvLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1) {
+cv::Mat_<double> cvLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1)
+{
     /*Build A matrix*/
     cv::Matx43d A(
         u.x * P(2, 0) - P(0, 0), u.x * P(2, 1) - P(0, 1), u.x * P(2, 2) - P(0, 2),
@@ -39,7 +42,8 @@ cv::Mat_<double> cvLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point
     return X;
 }
 
-cv::Mat_<double> cvIterativeLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1) {
+cv::Mat_<double> cvIterativeLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1)
+{
     double wi = 1, wi1 = 1;
     cv::Mat_<double> X(4, 1);
 
@@ -49,7 +53,8 @@ cv::Mat_<double> cvIterativeLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, 
     X(2) = X_(2);
     X(3) = 1.0;
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
+    {
         /*Recalculate weights*/
         double p2x = cv::Mat_<double>(cv::Mat_<double>(P).row(2) * X)(0);
         double p2x1 = cv::Mat_<double>(cv::Mat_<double>(P1).row(2) * X)(0);
@@ -82,24 +87,28 @@ cv::Mat_<double> cvIterativeLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, 
     return X;
 }
 
-void cv3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T) {
+void cv3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T)
+{
     /*Find the scale by finding the ratio of some distances*/
     int commonSize = src.size();
     double dist_src = 0, dist_dst = 0, scale;
-    for (int i = 0; i < commonSize - 1; i++) {
+    for (int i = 0; i < commonSize - 1; i++)
+    {
         dist_src += norm_2d(src[i], src[i + 1]);
         dist_dst += norm_2d(dst[i], dst[i + 1]);
     }
     scale = dist_dst / dist_src;
 
     /*Bring point sets to the same scale*/
-    for (int i = 0; i < commonSize; i++) {
+    for (int i = 0; i < commonSize; i++)
+    {
         src[i] *= scale;
     }
 
     /*Find the centroids*/
     cv::Point3d centroid_src(0, 0, 0), centroid_dst(0, 0, 0);
-    for (int i = 0; i < commonSize; i++) {
+    for (int i = 0; i < commonSize; i++)
+    {
         centroid_src += src[i];
         centroid_dst += dst[i];
     }
@@ -113,7 +122,8 @@ void cv3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d>
     centroid_dst.z /= commonSize;
 
     /*Shift to origin*/
-    for (int i = 0; i < commonSize; i++) {
+    for (int i = 0; i < commonSize; i++)
+    {
         src[i] -= centroid_src;
         dst[i] -= centroid_dst;
     }
@@ -121,7 +131,8 @@ void cv3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d>
     /*Find covariance matrix*/
     cv::Mat_<double> cor(3, 3);
     cor.setTo(cv::Scalar::all(0));
-    for (int i = 0; i < commonSize; i++) {
+    for (int i = 0; i < commonSize; i++)
+    {
         cv::Mat_<double> cor_i = (cv::Mat_<double>(3, 3) << src[i].x * dst[i].x, src[i].x * dst[i].y, src[i].x * dst[i].z,
                                   src[i].y * dst[i].x, src[i].y * dst[i].y, src[i].y * dst[i].z,
                                   src[i].z * dst[i].x, src[i].z * dst[i].y, src[i].z * dst[i].z);
@@ -139,12 +150,15 @@ void cv3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d>
          scale * (centroid_dst.z - centroid_src.z));
 }
 
-void cvIterative3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T) {
+void cvIterative3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T)
+{
     cv3DAffineEstimation(src, dst, R, T);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
+    {
         std::vector<cv::Point3d> src_;
-        for (unsigned int j = 0; j < src.size(); j++) {
+        for (unsigned int j = 0; j < src.size(); j++)
+        {
             cv::Mat_<double> src_i = (cv::Mat_<double>(3, 1) << src[j].x, src[j].y, src[j].z);
             cv::Mat_<double> dst_i = R * src_i + T;
             src_.push_back(cv::Point3d(dst_i.at<double>(0, 0),

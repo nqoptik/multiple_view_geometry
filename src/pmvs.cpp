@@ -1,17 +1,17 @@
+#include <dirent.h>
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
-#include <dirent.h>
 
+#include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/xfeatures2d.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
-#include "multiple_view_geometry/norm.hpp"
 #include "multiple_view_geometry/geometry.hpp"
+#include "multiple_view_geometry/norm.hpp"
 
 const int maxImgSize = 30;
 const cv::Mat_<double> K = (cv::Mat_<double>(3, 3) << 2759.48, 0, 1520.69, 0, 2764.16, 1006.81, 0, 0, 1);
@@ -30,7 +30,8 @@ const double goodPhotometric = 39;
 const double goodExpandingPhotometric = 21;
 const int noIterations = 100;
 
-struct Plane {
+struct Plane
+{
     ///Ax + By + Cz + D = 0
     double A;
     double B;
@@ -38,12 +39,14 @@ struct Plane {
     double D;
 };
 
-struct Grid {
+struct Grid
+{
     cv::Mat color;
     cv::Point3d position[3];
 };
 
-struct ImgInfos {
+struct ImgInfos
+{
     cv::Mat img;
     std::vector<cv::KeyPoint> kp;
     cv::Mat des;
@@ -55,7 +58,8 @@ struct ImgInfos {
     cv::Mat C_1;
 };
 
-struct Patch {
+struct Patch
+{
     cv::Point3d c;
     cv::Point3d n;
     std::vector<int> V;
@@ -98,14 +102,16 @@ void projectNewPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Patc
 
 void drawPatches(std::vector<ImgInfos> iifs, std::vector<Patch> patches);
 
-int main() {
+int main()
+{
     std::vector<cv::Mat> images;
 
     ///Load images
     loadImages(images);
     std::cout << "Number of images: " << images.size() << std::endl;
 
-    if (images.size() < 4) {
+    if (images.size() < 4)
+    {
         std::cout << "Not enough images to run PMVS." << std::endl;
         return 0;
     }
@@ -116,22 +122,27 @@ int main() {
     return 0;
 }
 
-double cvNorm2(cv::Point3d x) {
+double cvNorm2(cv::Point3d x)
+{
     return sqrt(x.x * x.x + x.y * x.y + x.z * x.z);
 }
 
-void loadImages(std::vector<cv::Mat>& images) {
+void loadImages(std::vector<cv::Mat>& images)
+{
     DIR* pDir;
     pDir = opendir(inputPath.c_str());
-    if (pDir == NULL) {
+    if (pDir == NULL)
+    {
         std::cout << "Directory not found." << std::endl;
         return;
     }
 
     struct dirent* pDirent;
     std::vector<std::string> img_paths;
-    while ((pDirent = readdir(pDir)) != NULL) {
-        if (strcmp(pDirent->d_name, ".") == 0 || strcmp(pDirent->d_name, "..") == 0) {
+    while ((pDirent = readdir(pDir)) != NULL)
+    {
+        if (strcmp(pDirent->d_name, ".") == 0 || strcmp(pDirent->d_name, "..") == 0)
+        {
             continue;
         }
         std::string imgPath = inputPath;
@@ -141,21 +152,25 @@ void loadImages(std::vector<cv::Mat>& images) {
     closedir(pDir);
 
     std::sort(img_paths.begin(), img_paths.end());
-    for (size_t i = 0; i < img_paths.size(); ++i) {
+    for (size_t i = 0; i < img_paths.size(); ++i)
+    {
         std::cout << img_paths[i] << std::endl;
         cv::Mat image = cv::imread(img_paths[i]);
-        if (image.empty()) {
+        if (image.empty())
+        {
             break;
         }
         images.push_back(image);
     }
 }
 
-void PMVS(std::vector<cv::Mat> images) {
+void PMVS(std::vector<cv::Mat> images)
+{
     ///Detect key points and compute descriptors
     std::vector<ImgInfos> iifs;
 
-    for (unsigned int i = 0; i < images.size(); i++) {
+    for (unsigned int i = 0; i < images.size(); i++)
+    {
         std::cout << "Number of key points in images " << i << ": ";
         ImgInfos iif;
         detectKeyPointsAndComputeDescriptors(images[i], iif);
@@ -175,7 +190,8 @@ void PMVS(std::vector<cv::Mat> images) {
     std::cout << "Number of seed patches: " << seedPatches.size() << std::endl;
 
     int firstNewPatchIdx = 0;
-    for (int i = 0; i < noIterations; i++) {
+    for (int i = 0; i < noIterations; i++)
+    {
         std::cout << "expand " << i << "..." << std::endl;
         projectNewPatchesToImageCells(iifs, seedPatches, firstNewPatchIdx);
         std::cout << "Marking cell to expand..." << std::endl;
@@ -187,18 +203,21 @@ void PMVS(std::vector<cv::Mat> images) {
     }
 }
 
-void detectKeyPointsAndComputeDescriptors(cv::Mat image, ImgInfos& iif) {
+void detectKeyPointsAndComputeDescriptors(cv::Mat image, ImgInfos& iif)
+{
     iif.img = image;
 
     ///Detect key points using SIFT
     cv::Ptr<cv::Feature2D> f2d = cv::xfeatures2d::SIFT::create();
     std::vector<cv::KeyPoint> keypoints_0, keypoints_1;
     f2d->detect(image, keypoints_0);
-    for (unsigned int i = 0; i < keypoints_0.size(); i++) {
+    for (unsigned int i = 0; i < keypoints_0.size(); i++)
+    {
         float x = keypoints_0[i].pt.x;
         float y = keypoints_0[i].pt.y;
         if ((x > gridSize) && (x < image.cols - gridSize - 1) &&
-            (y > gridSize) && (y < image.rows - gridSize - 1)) {
+            (y > gridSize) && (y < image.rows - gridSize - 1))
+        {
             keypoints_1.push_back(keypoints_0[i]);
         }
     }
@@ -210,13 +229,15 @@ void detectKeyPointsAndComputeDescriptors(cv::Mat image, ImgInfos& iif) {
     iif.des = descriptors;
 }
 
-void getSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches) {
+void getSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches)
+{
     int minPatchIdx;
     getFirstSeedPatches(iifs, seedPatches, minPatchIdx);
     getMoreSeedPatches(iifs, seedPatches, minPatchIdx);
 }
 
-void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches, int& minPatchIdx) {
+void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches, int& minPatchIdx)
+{
     ///Match descriptors using brute force
     std::vector<std::vector<cv::DMatch>> matches_0, matches_1;
     std::vector<float> ratios_0, ratios_1;
@@ -234,23 +255,27 @@ void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPa
     std::vector<Patch> bestPatches_0, bestPatches_1;
     cv::Mat_<double> bestR, bestT;
 
-    for (int loop_i = 0; loop_i < noStep; loop_i++) {
+    for (int loop_i = 0; loop_i < noStep; loop_i++)
+    {
         std::vector<Patch> patches_0;
         std::vector<cv::DMatch> correctMatches_0;
         float correctRatio_0 = minCorrectRatio + loop_i * step;
         chooseMatches(matches_0, ratios_0, correctRatio_0, correctMatches_0);
-        if (correctMatches_0.size() < min_pairs_findFundamentalMat) {
+        if (correctMatches_0.size() < min_pairs_findFundamentalMat)
+        {
             continue;
         }
         getPatchFromMatches(iifs, patches_0, 0, 1,
                             goodMatches_0, correctMatches_0);
 
-        for (int loop_j = 0; loop_j < noStep; loop_j++) {
+        for (int loop_j = 0; loop_j < noStep; loop_j++)
+        {
             std::vector<Patch> patches_1;
             std::vector<cv::DMatch> correctMatches_1;
             float correctRatio_1 = minCorrectRatio + loop_j * step;
             chooseMatches(matches_1, ratios_1, correctRatio_1, correctMatches_1);
-            if (correctMatches_1.size() < min_pairs_findFundamentalMat) {
+            if (correctMatches_1.size() < min_pairs_findFundamentalMat)
+            {
                 continue;
             }
             getPatchFromMatches(iifs, patches_1, 1, 2,
@@ -258,9 +283,12 @@ void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPa
 
             ///Take corresponding points
             std::vector<cv::Point3d> pts_0, pts_1;
-            for (unsigned int i = 0; i < patches_0.size(); i++) {
-                for (unsigned int j = 0; j < patches_1.size(); j++) {
-                    if (patches_1[j].idx[1] == patches_0[i].idx[1]) {
+            for (unsigned int i = 0; i < patches_0.size(); i++)
+            {
+                for (unsigned int j = 0; j < patches_1.size(); j++)
+                {
+                    if (patches_1[j].idx[1] == patches_0[i].idx[1])
+                    {
                         pts_0.push_back(patches_0[i].c);
                         pts_1.push_back(patches_1[j].c);
                         break;
@@ -277,7 +305,8 @@ void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPa
             estimateErrorRate(pts_0, pts_1, R, T, errorRate);
 
             ///Find min error rate
-            if (errorRate < minErrorRate) {
+            if (errorRate < minErrorRate)
+            {
                 minErrorRate = errorRate;
                 bestCorrectRatio_0 = correctRatio_0;
                 bestCorrectRatio_1 = correctRatio_1;
@@ -303,25 +332,31 @@ void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPa
     seedPatches = bestPatches_0;
 }
 
-void matchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv::DMatch>>& matches, std::vector<float>& ratios) {
+void matchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv::DMatch>>& matches, std::vector<float>& ratios)
+{
     cv::BFMatcher matcher(cv::NORM_L2);
     matcher.knnMatch(des_0, des_1, matches, 2);
 
-    for (unsigned int i = 0; i < matches.size(); i++) {
+    for (unsigned int i = 0; i < matches.size(); i++)
+    {
         ratios.push_back(matches[i][0].distance / matches[i][1].distance);
     }
 }
 
-void chooseMatches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, float acceptedRatio, std::vector<cv::DMatch>& acceptedMatches) {
+void chooseMatches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, float acceptedRatio, std::vector<cv::DMatch>& acceptedMatches)
+{
     acceptedMatches.clear();
-    for (unsigned int i = 0; i < matches.size(); i++) {
-        if (ratios[i] <= acceptedRatio) {
+    for (unsigned int i = 0; i < matches.size(); i++)
+    {
+        if (ratios[i] <= acceptedRatio)
+        {
             acceptedMatches.push_back(matches[i][0]);
         }
     }
 }
 
-void getPatchFromMatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches, int idx_0, int idx_1, std::vector<cv::DMatch> goodMatches, std::vector<cv::DMatch> correctMatches) {
+void getPatchFromMatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches, int idx_0, int idx_1, std::vector<cv::DMatch> goodMatches, std::vector<cv::DMatch> correctMatches)
+{
     ///Find fundamental matrix and essential matrix
     cv::Mat F;
     finFundamentalMatrix(iifs[idx_0].kp, iifs[idx_1].kp, correctMatches, F);
@@ -344,10 +379,12 @@ void getPatchFromMatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches
     triangulatePatches(iifs, patches, goodMatches, P_0, idx_0, P_1, idx_1);
 }
 
-void finFundamentalMatrix(std::vector<cv::KeyPoint> kp_0, std::vector<cv::KeyPoint> kp_1, std::vector<cv::DMatch> correctMatches, cv::Mat& F) {
+void finFundamentalMatrix(std::vector<cv::KeyPoint> kp_0, std::vector<cv::KeyPoint> kp_1, std::vector<cv::DMatch> correctMatches, cv::Mat& F)
+{
     ///Take corresponding points
     std::vector<cv::Point2f> points_0, points_1;
-    for (unsigned int i = 0; i < correctMatches.size(); i++) {
+    for (unsigned int i = 0; i < correctMatches.size(); i++)
+    {
         points_0.push_back(kp_0[correctMatches[i].queryIdx].pt);
         points_1.push_back(kp_1[correctMatches[i].trainIdx].pt);
     }
@@ -357,12 +394,15 @@ void finFundamentalMatrix(std::vector<cv::KeyPoint> kp_0, std::vector<cv::KeyPoi
     F = cv::findFundamentalMat(points_0, points_1, CV_FM_LMEDS, 3., 0.99, mask);
 }
 
-void triangulatePatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches, std::vector<cv::DMatch> goodMatches, cv::Matx34d P_0, int idx_0, cv::Matx34d P_1, int idx_1) {
+void triangulatePatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches, std::vector<cv::DMatch> goodMatches, cv::Matx34d P_0, int idx_0, cv::Matx34d P_1, int idx_1)
+{
     patches.clear();
-    for (unsigned int i = 0; i < goodMatches.size(); i++) {
+    for (unsigned int i = 0; i < goodMatches.size(); i++)
+    {
         Patch patch;
 
-        for (int j = 0; j < maxImgSize; j++) {
+        for (int j = 0; j < maxImgSize; j++)
+        {
             patch.idx[j] = -1;
         }
 
@@ -388,9 +428,11 @@ void triangulatePatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches,
     }
 }
 
-void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> pts_1, cv::Mat_<double> R, cv::Mat_<double> T, double& errorRate) {
+void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> pts_1, cv::Mat_<double> R, cv::Mat_<double> T, double& errorRate)
+{
     std::vector<cv::Point3d> pts_0_;
-    for (unsigned int i = 0; i < pts_1.size(); i++) {
+    for (unsigned int i = 0; i < pts_1.size(); i++)
+    {
         cv::Mat_<double> pt_1 = (cv::Mat_<double>(3, 1) << pts_1[i].x, pts_1[i].y, pts_1[i].z);
         cv::Mat_<double> pt_0_(3, 1);
         pt_0_ = R * pt_1 + T;
@@ -400,12 +442,14 @@ void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> 
     }
 
     double avgError = 0;
-    for (unsigned int i = 0; i < pts_0.size(); i++) {
+    for (unsigned int i = 0; i < pts_0.size(); i++)
+    {
         avgError += cvEuclidDistd(pts_0_[i], pts_0[i]);
     }
 
     cv::Point3d centroid(0, 0, 0);
-    for (unsigned int i = 0; i < pts_0.size(); i++) {
+    for (unsigned int i = 0; i < pts_0.size(); i++)
+    {
         centroid += pts_0[i];
     }
 
@@ -414,15 +458,18 @@ void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> 
     centroid.z /= pts_0.size();
 
     double avgRange = 0;
-    for (unsigned int i = 0; i < pts_0.size(); i++) {
+    for (unsigned int i = 0; i < pts_0.size(); i++)
+    {
         avgRange += cvEuclidDistd(pts_0[i], centroid);
     }
 
     errorRate = avgError / avgRange;
 }
 
-void warpPatches(std::vector<Patch> patches_1, std::vector<Patch>& patches_0, cv::Mat_<double> R, cv::Mat_<double> T) {
-    for (unsigned int i = 0; i < patches_1.size(); i++) {
+void warpPatches(std::vector<Patch> patches_1, std::vector<Patch>& patches_0, cv::Mat_<double> R, cv::Mat_<double> T)
+{
+    for (unsigned int i = 0; i < patches_1.size(); i++)
+    {
         cv::Mat_<double> pt_1 = (cv::Mat_<double>(3, 1) << patches_1[i].c.x, patches_1[i].c.y, patches_1[i].c.z);
         cv::Mat_<double> pt_0_(3, 1);
         pt_0_ = R * pt_1 + T;
@@ -433,8 +480,10 @@ void warpPatches(std::vector<Patch> patches_1, std::vector<Patch>& patches_0, cv
     }
 }
 
-void getMoreSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches, int minPatchIdx) {
-    for (unsigned int idx_1 = 3; idx_1 < iifs.size(); idx_1++) {
+void getMoreSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches, int minPatchIdx)
+{
+    for (unsigned int idx_1 = 3; idx_1 < iifs.size(); idx_1++)
+    {
         int idx_0 = idx_1 - 1;
         std::vector<std::vector<cv::DMatch>> matches;
         std::vector<float> ratios;
@@ -446,22 +495,28 @@ void getMoreSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPat
         double minErrorRate = 10;
         cv::Mat_<double> bestR, bestT;
 
-        for (int loop = 0; loop < noStep; loop++) {
+        for (int loop = 0; loop < noStep; loop++)
+        {
             std::vector<Patch> patches;
             std::vector<cv::DMatch> correctMatches;
             float correctRatio = minCorrectRatio + loop * step;
             chooseMatches(matches, ratios, correctRatio, correctMatches);
-            if (correctMatches.size() < min_pairs_findFundamentalMat) {
+            if (correctMatches.size() < min_pairs_findFundamentalMat)
+            {
                 continue;
             }
             getPatchFromMatches(iifs, patches, idx_0, idx_1,
                                 goodMatches, correctMatches);
             std::vector<cv::Point3d> pts_0, pts_1;
 
-            for (unsigned int i = minPatchIdx; i < seedPatches.size(); i++) {
-                if (seedPatches[i].idx[idx_0] != -1) {
-                    for (unsigned int j = 0; j < patches.size(); j++) {
-                        if (patches[j].idx[idx_0] == seedPatches[i].idx[idx_0]) {
+            for (unsigned int i = minPatchIdx; i < seedPatches.size(); i++)
+            {
+                if (seedPatches[i].idx[idx_0] != -1)
+                {
+                    for (unsigned int j = 0; j < patches.size(); j++)
+                    {
+                        if (patches[j].idx[idx_0] == seedPatches[i].idx[idx_0])
+                        {
                             pts_0.push_back(seedPatches[i].c);
                             pts_1.push_back(patches[j].c);
                             break;
@@ -479,7 +534,8 @@ void getMoreSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPat
             estimateErrorRate(pts_0, pts_1, R, T, errorRate);
 
             ///Find min error rate
-            if (errorRate < minErrorRate) {
+            if (errorRate < minErrorRate)
+            {
                 minErrorRate = errorRate;
                 bestCorrectRatio = correctRatio;
                 bestPatches = patches;
@@ -502,7 +558,8 @@ void getMoreSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPat
     }
 }
 
-void calculateImgInfos(std::vector<ImgInfos>& iifs) {
+void calculateImgInfos(std::vector<ImgInfos>& iifs)
+{
     iifs[0].R = (cv::Mat_<double>(3, 3) << 1, 0, 0,
                  0, 1, 0,
                  0, 0, 1);
@@ -515,7 +572,8 @@ void calculateImgInfos(std::vector<ImgInfos>& iifs) {
     iifs[0].oc = cv::Point3d(0, 0, 0);
 
     ///Calculate projection matrix
-    for (unsigned int i = 1; i < iifs.size() - 1; i++) {
+    for (unsigned int i = 1; i < iifs.size() - 1; i++)
+    {
         cv::Mat_<double> R, T;
         R = iifs[i].R.inv();
         T = -iifs[i].R.inv() * iifs[i].T;
@@ -527,15 +585,18 @@ void calculateImgInfos(std::vector<ImgInfos>& iifs) {
     }
 
     ///Cells
-    for (unsigned int i = 0; i < iifs.size() - 1; i++) {
+    for (unsigned int i = 0; i < iifs.size() - 1; i++)
+    {
         iifs[i].C_0 = cv::Mat::zeros(floor(iifs[i].img.rows / cellSize) + 1,
                                      floor(iifs[i].img.cols / cellSize) + 1, CV_32SC1);
     }
 }
 
-void calculateSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches) {
+void calculateSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches)
+{
     ///Calculate normal vector
-    for (unsigned int i = 0; i < seedPatches.size(); i++) {
+    for (unsigned int i = 0; i < seedPatches.size(); i++)
+    {
         seedPatches[i].n = iifs[seedPatches[i].R].oc - seedPatches[i].c;
         double d = cvNorm2(seedPatches[i].n);
         seedPatches[i].n.x /= d;
@@ -544,7 +605,8 @@ void calculateSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedP
     }
 
     ///Calculate visible images
-    for (unsigned int i = 0; i < seedPatches.size(); i++) {
+    for (unsigned int i = 0; i < seedPatches.size(); i++)
+    {
         calculateVisibleAndReferenceImages(iifs, seedPatches[i]);
         calculateGridPosition(iifs, seedPatches[i]);
         calculateGridColorAndxyInR(iifs, seedPatches[i]);
@@ -552,10 +614,12 @@ void calculateSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedP
     }
 }
 
-void calculateVisibleAndReferenceImages(std::vector<ImgInfos> iifs, Patch& patch) {
+void calculateVisibleAndReferenceImages(std::vector<ImgInfos> iifs, Patch& patch)
+{
     double maxCos = 0;
     int RIdx = 0;
-    for (unsigned int i = 0; i < iifs.size() - 1; i++) {
+    for (unsigned int i = 0; i < iifs.size() - 1; i++)
+    {
         cv::Point3d vt;
         vt = iifs[i].oc - patch.c;
         double d = cvNorm2(vt);
@@ -564,7 +628,8 @@ void calculateVisibleAndReferenceImages(std::vector<ImgInfos> iifs, Patch& patch
         vt.z /= d;
         double cos_ = patch.n.x * vt.x +
                       patch.n.y * vt.y + patch.n.z * vt.z;
-        if (cos_ > visibleCos) {
+        if (cos_ > visibleCos)
+        {
             cv::Mat_<double> X = (cv::Mat_<double>(4, 1) << patch.c.x,
                                   patch.c.y,
                                   patch.c.z,
@@ -576,11 +641,13 @@ void calculateVisibleAndReferenceImages(std::vector<ImgInfos> iifs, Patch& patch
             if ((x.at<double>(0, 0) > gridSize) &&
                 (x.at<double>(0, 0) < iifs[i].img.cols - gridSize - 1) &&
                 (x.at<double>(1, 0) > gridSize) &&
-                (x.at<double>(1, 0) < iifs[i].img.rows - gridSize - 1)) {
+                (x.at<double>(1, 0) < iifs[i].img.rows - gridSize - 1))
+            {
                 patch.V.push_back(i);
             }
         }
-        if (cos_ > maxCos) {
+        if (cos_ > maxCos)
+        {
             maxCos = cos_;
             RIdx = i;
         }
@@ -588,7 +655,8 @@ void calculateVisibleAndReferenceImages(std::vector<ImgInfos> iifs, Patch& patch
     patch.R = RIdx;
 }
 
-void calculateGridPosition(std::vector<ImgInfos> iifs, Patch& patch) {
+void calculateGridPosition(std::vector<ImgInfos> iifs, Patch& patch)
+{
     cv::Mat_<double> X = (cv::Mat_<double>(4, 1) << patch.c.x,
                           patch.c.y,
                           patch.c.z,
@@ -631,7 +699,8 @@ void calculateGridPosition(std::vector<ImgInfos> iifs, Patch& patch) {
     patch.grid.position[2] = cv::Point3d(XYZ2(0, 0), XYZ2(1, 0), XYZ2(2, 0));
 }
 
-void calculateGridColorAndxyInR(std::vector<ImgInfos> iifs, Patch& patch) {
+void calculateGridColorAndxyInR(std::vector<ImgInfos> iifs, Patch& patch)
+{
     int iIdx = patch.R;
     cv::Point2f srcPoints[3];
     cv::Point2f dstPoints[3];
@@ -680,16 +749,20 @@ void calculateGridColorAndxyInR(std::vector<ImgInfos> iifs, Patch& patch) {
     cv::warpAffine(iifs[iIdx].img, patch.grid.color, Affine, patch.grid.color.size());
 }
 
-void calculatePhotometric(std::vector<ImgInfos> iifs, Patch& patch) {
-    if (patch.V.size() <= noVisible) {
+void calculatePhotometric(std::vector<ImgInfos> iifs, Patch& patch)
+{
+    if (patch.V.size() <= noVisible)
+    {
         patch.g = goodPhotometric + 1;
         return;
     }
 
     double g = 0;
-    for (unsigned int i = 0; i < patch.V.size(); i++) {
+    for (unsigned int i = 0; i < patch.V.size(); i++)
+    {
         int iIdx = patch.V[i];
-        if (iIdx != patch.R) {
+        if (iIdx != patch.R)
+        {
             cv::Point2f srcPoints[3];
             cv::Point2f dstPoints[3];
 
@@ -736,20 +809,26 @@ void calculatePhotometric(std::vector<ImgInfos> iifs, Patch& patch) {
     patch.g = g / (gridSize * gridSize * (patch.V.size() - 1));
 }
 
-void filterSeedPatches(std::vector<Patch>& patches) {
+void filterSeedPatches(std::vector<Patch>& patches)
+{
     ///Eliminate incorrect patches using visibility rule
-    for (unsigned int i = 0; i < patches.size(); i++) {
-        if ((patches[i].V.size() <= noVisible) || (patches[i].g > goodPhotometric)) {
+    for (unsigned int i = 0; i < patches.size(); i++)
+    {
+        if ((patches[i].V.size() <= noVisible) || (patches[i].g > goodPhotometric))
+        {
             patches.erase(patches.begin() + i);
             i--;
         }
     }
 }
 
-void projectSeedPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Patch> seedPatches) {
+void projectSeedPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Patch> seedPatches)
+{
     ///Project seed patches to image cells
-    for (unsigned int i = 0; i < seedPatches.size(); i++) {
-        for (unsigned j = 0; j < seedPatches[i].V.size(); j++) {
+    for (unsigned int i = 0; i < seedPatches.size(); i++)
+    {
+        for (unsigned j = 0; j < seedPatches[i].V.size(); j++)
+        {
             int iIdx = seedPatches[i].V[j];
             cv::Mat_<double> X = (cv::Mat_<double>(4, 1) << seedPatches[i].c.x,
                                   seedPatches[i].c.y,
@@ -762,44 +841,71 @@ void projectSeedPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Pat
             int row = floor(x.at<double>(1, 0) / cellSize);
             int col = floor(x.at<double>(0, 0) / cellSize);
             if (row > 0 && row < iifs[j].C_0.rows &&
-                col > 0 && col < iifs[j].C_0.cols) {
-                if (iIdx == seedPatches[i].R) {
+                col > 0 && col < iifs[j].C_0.cols)
+            {
+                if (iIdx == seedPatches[i].R)
+                {
                     iifs[iIdx].C_0.at<int>(row, col) = i;
-                } else {
+                }
+                else
+                {
                     iifs[iIdx].C_0.at<int>(row, col) = -1;
                 }
-            } else {
+            }
+            else
+            {
                 std::cout << "Patch out of visible images." << std::endl;
             }
         }
     }
 }
 
-void markCellsToExpand(std::vector<ImgInfos>& iifs) {
-    for (unsigned int i = 0; i < iifs.size() - 1; i++) {
+void markCellsToExpand(std::vector<ImgInfos>& iifs)
+{
+    for (unsigned int i = 0; i < iifs.size() - 1; i++)
+    {
         iifs[i].C_1 = cv::Mat::zeros(floor(iifs[i].img.rows / cellSize) + 1,
                                      floor(iifs[i].img.cols / cellSize) + 1, CV_32SC1);
     }
 
-    for (unsigned int i = 0; i < iifs.size() - 1; i++) {
-        for (int k = 1; k < iifs[i].C_0.rows - 1; k++) {
-            for (int l = 1; l < iifs[i].C_0.cols - 1; l++) {
-                if (iifs[i].C_0.at<int>(k, l) == 0) {
-                    if (iifs[i].C_0.at<int>(k, l + 1) > 0) {
+    for (unsigned int i = 0; i < iifs.size() - 1; i++)
+    {
+        for (int k = 1; k < iifs[i].C_0.rows - 1; k++)
+        {
+            for (int l = 1; l < iifs[i].C_0.cols - 1; l++)
+            {
+                if (iifs[i].C_0.at<int>(k, l) == 0)
+                {
+                    if (iifs[i].C_0.at<int>(k, l + 1) > 0)
+                    {
                         iifs[i].C_1.at<int>(k, l) = iifs[i].C_0.at<int>(k, l + 1);
-                    } else if (iifs[i].C_0.at<int>(k, l - 1) > 0) {
+                    }
+                    else if (iifs[i].C_0.at<int>(k, l - 1) > 0)
+                    {
                         iifs[i].C_1.at<int>(k, l) = iifs[i].C_0.at<int>(k, l - 1);
-                    } else if (iifs[i].C_0.at<int>(k + 1, l) > 0) {
+                    }
+                    else if (iifs[i].C_0.at<int>(k + 1, l) > 0)
+                    {
                         iifs[i].C_1.at<int>(k, l) = iifs[i].C_0.at<int>(k + 1, l);
-                    } else if (iifs[i].C_0.at<int>(k - 1, l) > 0) {
+                    }
+                    else if (iifs[i].C_0.at<int>(k - 1, l) > 0)
+                    {
                         iifs[i].C_1.at<int>(k, l) = iifs[i].C_0.at<int>(k - 1, l);
-                    } else if (iifs[i].C_0.at<int>(k - 1, l - 1) > 0) {
+                    }
+                    else if (iifs[i].C_0.at<int>(k - 1, l - 1) > 0)
+                    {
                         iifs[i].C_1.at<int>(k, l) = iifs[i].C_0.at<int>(k - 1, l - 1);
-                    } else if (iifs[i].C_0.at<int>(k - 1, l + 1) > 0) {
+                    }
+                    else if (iifs[i].C_0.at<int>(k - 1, l + 1) > 0)
+                    {
                         iifs[i].C_1.at<int>(k, l) = iifs[i].C_0.at<int>(k - 1, l + 1);
-                    } else if (iifs[i].C_0.at<int>(k + 1, l - 1) > 0) {
+                    }
+                    else if (iifs[i].C_0.at<int>(k + 1, l - 1) > 0)
+                    {
                         iifs[i].C_1.at<int>(k, l) = iifs[i].C_0.at<int>(k + 1, l - 1);
-                    } else if (iifs[i].C_0.at<int>(k + 1, l + 1) > 0) {
+                    }
+                    else if (iifs[i].C_0.at<int>(k + 1, l + 1) > 0)
+                    {
                         iifs[i].C_1.at<int>(k, l) = iifs[i].C_0.at<int>(k + 1, l + 1);
                     }
                 }
@@ -808,12 +914,17 @@ void markCellsToExpand(std::vector<ImgInfos>& iifs) {
     }
 }
 
-void expandPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches) {
-    for (unsigned int i = 0; i < iifs.size() - 1; i++) {
-        for (int k = 1; k < iifs[i].C_1.rows - 1; k++) {
-            for (int l = 1; l < iifs[i].C_1.cols - 1; l++) {
+void expandPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches)
+{
+    for (unsigned int i = 0; i < iifs.size() - 1; i++)
+    {
+        for (int k = 1; k < iifs[i].C_1.rows - 1; k++)
+        {
+            for (int l = 1; l < iifs[i].C_1.cols - 1; l++)
+            {
                 int idx = iifs[i].C_1.at<int>(k, l);
-                if (idx > 0) {
+                if (idx > 0)
+                {
                     cv::Mat_<double> X = (cv::Mat_<double>(4, 1) << seedPatches[idx].c.x,
                                           seedPatches[idx].c.y,
                                           seedPatches[idx].c.z,
@@ -846,7 +957,8 @@ void expandPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches)
                     double bestg = goodExpandingPhotometric + 1;
 
                     Patch bestNewPatch;
-                    for (int loop_p = -2; loop_p < 3; loop_p++) {
+                    for (int loop_p = -2; loop_p < 3; loop_p++)
+                    {
                         Patch newPatch;
                         cv::Point3d loopN = N + loop_p * vON;
                         newPatch.c = loopN;
@@ -861,13 +973,15 @@ void expandPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches)
                         calculateGridColorAndxyInR(iifs, newPatch);
                         calculatePhotometric(iifs, newPatch);
 
-                        if (newPatch.g < bestg) {
+                        if (newPatch.g < bestg)
+                        {
                             bestg = newPatch.g;
                             bestNewPatch = newPatch;
                         }
                     }
 
-                    if (bestg <= goodExpandingPhotometric) {
+                    if (bestg <= goodExpandingPhotometric)
+                    {
                         seedPatches.push_back(bestNewPatch);
                     }
                 }
@@ -877,7 +991,8 @@ void expandPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches)
     }
 }
 
-Plane takePlane(cv::Point3d point, cv::Point3d normal) {
+Plane takePlane(cv::Point3d point, cv::Point3d normal)
+{
     Plane p;
     p.A = normal.x;
     p.B = normal.y;
@@ -886,7 +1001,8 @@ Plane takePlane(cv::Point3d point, cv::Point3d normal) {
     return p;
 }
 
-cv::Point3d takeIntesection(cv::Point3d A, cv::Point3d B, Plane p) {
+cv::Point3d takeIntesection(cv::Point3d A, cv::Point3d B, Plane p)
+{
     cv::Point3d AB = B - A;
     double t = -(p.A * A.x + p.B * A.y + p.C * A.z + p.D) /
                (p.A * AB.x + p.B * AB.y + p.C * AB.z);
@@ -894,15 +1010,19 @@ cv::Point3d takeIntesection(cv::Point3d A, cv::Point3d B, Plane p) {
     return intersection;
 }
 
-cv::Point3d newNormal(cv::Point3d A, cv::Point3d oldNormal, cv::Point3d B) {
+cv::Point3d newNormal(cv::Point3d A, cv::Point3d oldNormal, cv::Point3d B)
+{
     cv::Point3d AB = B - A;
     return cvCross(AB, cvCross(oldNormal, AB));
 }
 
-void projectNewPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Patch> seedPatches, int firstNewPatchIdx) {
+void projectNewPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Patch> seedPatches, int firstNewPatchIdx)
+{
     ///Project seed patches to image cells
-    for (unsigned int i = firstNewPatchIdx; i < seedPatches.size(); i++) {
-        for (unsigned j = 0; j < seedPatches[i].V.size(); j++) {
+    for (unsigned int i = firstNewPatchIdx; i < seedPatches.size(); i++)
+    {
+        for (unsigned j = 0; j < seedPatches[i].V.size(); j++)
+        {
             int iIdx = seedPatches[i].V[j];
             cv::Mat_<double> X = (cv::Mat_<double>(4, 1) << seedPatches[i].c.x,
                                   seedPatches[i].c.y,
@@ -915,20 +1035,27 @@ void projectNewPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Patc
             int row = floor(x.at<double>(1, 0) / cellSize);
             int col = floor(x.at<double>(0, 0) / cellSize);
             if (row > 0 && row < iifs[j].C_0.rows &&
-                col > 0 && col < iifs[j].C_0.cols) {
-                if (iIdx == seedPatches[i].R) {
+                col > 0 && col < iifs[j].C_0.cols)
+            {
+                if (iIdx == seedPatches[i].R)
+                {
                     iifs[iIdx].C_0.at<int>(row, col) = i;
-                } else {
+                }
+                else
+                {
                     iifs[iIdx].C_0.at<int>(row, col) = -1;
                 }
-            } else {
+            }
+            else
+            {
                 std::cout << "Patch out of visible images." << std::endl;
             }
         }
     }
 }
 
-void drawPatches(std::vector<ImgInfos> iifs, std::vector<Patch> patches) {
+void drawPatches(std::vector<ImgInfos> iifs, std::vector<Patch> patches)
+{
     std::fstream f;
     f.open(outputPath, std::ios::out);
     f << "ply" << std::endl;
@@ -944,11 +1071,13 @@ void drawPatches(std::vector<ImgInfos> iifs, std::vector<Patch> patches) {
     f << "property list uint8 int32 vertex_indices" << std::endl;
     f << "end_header" << std::endl;
 
-    for (unsigned int i = 0; i < patches.size(); i++) {
+    for (unsigned int i = 0; i < patches.size(); i++)
+    {
         f << patches[i].c.x << " " << patches[i].c.y << " " << patches[i].c.z << " " << std::to_string(patches[i].grid.color.at<cv::Vec3b>(gridSize / 2, gridSize / 2)[2]) << " " << std::to_string(patches[i].grid.color.at<cv::Vec3b>(gridSize / 2, gridSize / 2)[1]) << " " << std::to_string(patches[i].grid.color.at<cv::Vec3b>(gridSize / 2, gridSize / 2)[0]) << std::endl;
     }
 
-    for (unsigned int i = 0; i < iifs.size() - 1; i++) {
+    for (unsigned int i = 0; i < iifs.size() - 1; i++)
+    {
         f << iifs[i].oc.x << " " << iifs[i].oc.y << " " << iifs[i].oc.z << " 255 0 0" << std::endl;
     }
 
