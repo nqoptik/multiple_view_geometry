@@ -10,8 +10,8 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
 
-#include "multiple_view_geometry/norm.h"
-#include "multiple_view_geometry/geometry.h"
+#include "multiple_view_geometry/norm.hpp"
+#include "multiple_view_geometry/geometry.hpp"
 
 const int maxImgSize = 30;
 const cv::Mat_<double> K = (cv::Mat_<double>(3, 3) << 2759.48, 0, 1520.69, 0, 2764.16, 1006.81, 0, 0, 1);

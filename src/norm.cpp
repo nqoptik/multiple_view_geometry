@@ -1,4 +1,4 @@
-#include "multiple_view_geometry/norm.h"
+#include "multiple_view_geometry/norm.hpp"
 
 double norm_2d(cv::Point2d p1, cv::Point2d p2) {
     double dx = p2.x - p1.x;

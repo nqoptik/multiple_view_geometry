@@ -1,14 +1,12 @@
-#pragma once
-
-#ifndef _GEOMETRY_H_
-#define _GEOMETRY_H_
+#ifndef GEOMETRY_HPP
+#define GEOMETRY_HPP
 
 #include <iostream>
 #include <vector>
 
 #include <opencv2/core/core.hpp>
 
-#include "multiple_view_geometry/norm.h"
+#include "multiple_view_geometry/norm.hpp"
 
 cv::Point3d cvCross(cv::Point3d a, cv::Point3d b);
 cv::Mat_<double> cvRotationBetweenVectors(cv::Point3d a, cv::Point3d b);
@@ -17,4 +15,4 @@ cv::Mat_<double> cvIterativeLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, 
 void cv3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T);
 void cvIterative3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T);
 
-#endif /* _GEOMETRY_H_ */
+#endif  // GEOMETRY_HPP

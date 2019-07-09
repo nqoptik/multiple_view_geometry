@@ -9,10 +9,10 @@
 #include <opencv2/xfeatures2d.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
-#include "multiple_view_geometry/norm.h"
-#include "multiple_view_geometry/geometry.h"
-#include "multiple_view_geometry/loadimages.h"
-#include "multiple_view_geometry/featuresmatching.h"
+#include "multiple_view_geometry/norm.hpp"
+#include "multiple_view_geometry/geometry.hpp"
+#include "multiple_view_geometry/loadimages.hpp"
+#include "multiple_view_geometry/featuresmatching.hpp"
 
 /*Constants*/
 const int maxNumOfImages = 50;

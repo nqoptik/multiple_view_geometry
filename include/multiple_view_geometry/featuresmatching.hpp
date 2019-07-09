@@ -1,7 +1,5 @@
-#pragma once
-
-#ifndef _FEATURESMATCHING_H_
-#define _FEATURESMATCHING_H_
+#ifndef FEATURESMATCHING_HPP
+#define FEATURESMATCHING_HPP
 
 #include <iostream>
 
@@ -11,4 +9,4 @@ void BFMatchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv
 void FLANNMatchDescriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv::DMatch>>& matches, std::vector<float>& ratios, std::vector<float>& sortedRatios);
 void chooseMatches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, std::vector<float> sortedRatios, unsigned int noMatches, std::vector<cv::DMatch>& acceptedMatches);
 
-#endif /* _FEATURESMATCHING_H_ */
+#endif  // FEATURESMATCHING_HPP

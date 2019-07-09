@@ -1,4 +1,4 @@
-#include "multiple_view_geometry/geometry.h"
+#include "multiple_view_geometry/geometry.hpp"
 
 cv::Point3d cvCross(cv::Point3d a, cv::Point3d b) {
     return cv::Point3d(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
