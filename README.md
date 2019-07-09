@@ -16,7 +16,7 @@ make
 ## Run project
 Copy test data to build folder:
 ```
-cp -r ../../../computer_vision_basics_data/3d_reconstruction/build/* .
+cp -r ../../computer_vision_basics_data/multiple_view_geometry/build/* .
 ```
 
 Create output folders:
