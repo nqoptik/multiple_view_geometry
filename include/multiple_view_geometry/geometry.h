@@ -8,7 +8,7 @@
 
 #include <opencv2/core/core.hpp>
 
-#include "3d_reconstruction/norm.h"
+#include "multiple_view_geometry/norm.h"
 
 cv::Point3d cvCross(cv::Point3d a, cv::Point3d b);
 cv::Mat_<double> cvRotationBetweenVectors(cv::Point3d a, cv::Point3d b);

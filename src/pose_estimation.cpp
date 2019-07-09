@@ -9,10 +9,10 @@
 #include <opencv2/xfeatures2d.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
-#include "3d_reconstruction/norm.h"
-#include "3d_reconstruction/geometry.h"
-#include "3d_reconstruction/loadimages.h"
-#include "3d_reconstruction/featuresmatching.h"
+#include "multiple_view_geometry/norm.h"
+#include "multiple_view_geometry/geometry.h"
+#include "multiple_view_geometry/loadimages.h"
+#include "multiple_view_geometry/featuresmatching.h"
 
 /*Constants*/
 const int maxNumOfImages = 50;
@@ -33,7 +33,7 @@ void importModel(std::vector<PointInCL>& cloud, std::string path);
 void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int first, int last);
 
 /*Main function*/
-int main(int argc, char** argv) {
+int main() {
     std::vector<PointInCL> glbCloud;
 
     std::cout << "Pose estimation." << std::endl;

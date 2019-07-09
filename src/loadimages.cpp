@@ -1,4 +1,4 @@
-#include "3d_reconstruction/loadimages.h"
+#include "multiple_view_geometry/loadimages.h"
 
 std::string intToImageName(int number, std::string extenstion) {
     std::string imgName;

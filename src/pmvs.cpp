@@ -10,8 +10,8 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/video/tracking.hpp>
 
-#include "3d_reconstruction/norm.h"
-#include "3d_reconstruction/geometry.h"
+#include "multiple_view_geometry/norm.h"
+#include "multiple_view_geometry/geometry.h"
 
 const int maxImgSize = 30;
 const cv::Mat_<double> K = (cv::Mat_<double>(3, 3) << 2759.48, 0, 1520.69, 0, 2764.16, 1006.81, 0, 0, 1);
@@ -69,7 +69,7 @@ struct Patch {
 
 double cvNorm2(cv::Point3d x);
 void loadImages(std::vector<cv::Mat>& images);
-void PMVS(std::vector<cv::Mat> images, std::vector<Patch>& densePatches);
+void PMVS(std::vector<cv::Mat> images);
 void detectKeyPointsAndComputeDescriptors(cv::Mat image, ImgInfos& iif);
 void getSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches);
 void getFirstSeedPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches, int& minPatchIdx);
@@ -87,7 +87,7 @@ void calculateVisibleAndReferenceImages(std::vector<ImgInfos> iifs, Patch& patch
 void calculateGridPosition(std::vector<ImgInfos> iifs, Patch& patch);
 void calculateGridColorAndxyInR(std::vector<ImgInfos> iifs, Patch& patch);
 void calculatePhotometric(std::vector<ImgInfos> iifs, Patch& patch);
-void filterSeedPatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches);
+void filterSeedPatches(std::vector<Patch>& patches);
 void projectSeedPatchesToImageCells(std::vector<ImgInfos>& iifs, std::vector<Patch> seedPatches);
 void markCellsToExpand(std::vector<ImgInfos>& iifs);
 void expandPatches(std::vector<ImgInfos>& iifs, std::vector<Patch>& seedPatches);
@@ -111,8 +111,7 @@ int main() {
     }
 
     ///Reconstruct model using PMVS
-    std::vector<Patch> densePatches;
-    PMVS(images, densePatches);
+    PMVS(images);
 
     return 0;
 }
@@ -152,7 +151,7 @@ void loadImages(std::vector<cv::Mat>& images) {
     }
 }
 
-void PMVS(std::vector<cv::Mat> images, std::vector<Patch>& densePatches) {
+void PMVS(std::vector<cv::Mat> images) {
     ///Detect key points and compute descriptors
     std::vector<ImgInfos> iifs;
 
@@ -172,7 +171,7 @@ void PMVS(std::vector<cv::Mat> images, std::vector<Patch>& densePatches) {
     std::cout << "Calculating seed patches..." << std::endl;
     calculateSeedPatches(iifs, seedPatches);
     std::cout << "Filtering seed patches..." << std::endl;
-    filterSeedPatches(iifs, seedPatches);
+    filterSeedPatches(seedPatches);
     std::cout << "Number of seed patches: " << seedPatches.size() << std::endl;
 
     int firstNewPatchIdx = 0;
@@ -737,7 +736,7 @@ void calculatePhotometric(std::vector<ImgInfos> iifs, Patch& patch) {
     patch.g = g / (gridSize * gridSize * (patch.V.size() - 1));
 }
 
-void filterSeedPatches(std::vector<ImgInfos> iifs, std::vector<Patch>& patches) {
+void filterSeedPatches(std::vector<Patch>& patches) {
     ///Eliminate incorrect patches using visibility rule
     for (unsigned int i = 0; i < patches.size(); i++) {
         if ((patches[i].V.size() <= noVisible) || (patches[i].g > goodPhotometric)) {
