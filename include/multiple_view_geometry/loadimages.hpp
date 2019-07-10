@@ -9,4 +9,4 @@
 std::string intToImageName(int number, std::string extenstion);
 std::vector<cv::Mat> loadImages(std::string path, int first, int last);
 
-#endif  // LOADIMAGES_HPP
+#endif // LOADIMAGES_HPP

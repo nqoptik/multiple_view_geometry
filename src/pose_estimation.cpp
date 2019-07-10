@@ -180,7 +180,7 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
         f2d->detectAndCompute(newFrame, cv::Mat(), kpFrame, desFrame);
         double t2 = clock();
 
-        std::vector<std::vector<cv::DMatch> > matches;
+        std::vector<std::vector<cv::DMatch>> matches;
         std::vector<float> ratios, sortedRatios;
         FLANNMatchDescriptors(cloudDes, desFrame, matches, ratios, sortedRatios);
 
