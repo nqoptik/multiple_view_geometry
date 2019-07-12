@@ -1,13 +1,13 @@
 #include "multiple_view_geometry/geometry.hpp"
 
-cv::Point3d cvCross(cv::Point3d a, cv::Point3d b)
+cv::Point3d get_cross_product(cv::Point3d a, cv::Point3d b)
 {
     return cv::Point3d(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 
-cv::Mat_<double> cvRotationBetweenVectors(cv::Point3d a, cv::Point3d b)
+cv::Mat_<double> get_rotation_matrix(cv::Point3d a, cv::Point3d b)
 {
-    cv::Point3d v = cvCross(a, b);
+    cv::Point3d v = get_cross_product(a, b);
     double s = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     cv::Mat_<double> I = (cv::Mat_<double>(3, 3) << 1, 0, 0,
                           0, 1, 0,
@@ -22,7 +22,7 @@ cv::Mat_<double> cvRotationBetweenVectors(cv::Point3d a, cv::Point3d b)
     return I + vec + vec * vec * (1 - c) / s / s;
 }
 
-cv::Mat_<double> cvLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1)
+cv::Mat_<double> linear_ls_triangulation(cv::Point3d u, cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1)
 {
     /*Build A matrix*/
     cv::Matx43d A(
@@ -42,12 +42,12 @@ cv::Mat_<double> cvLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point
     return X;
 }
 
-cv::Mat_<double> cvIterativeLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1)
+cv::Mat_<double> iterative_linear_ls_triangulation(cv::Point3d u, cv::Matx34d P, cv::Point3d u1, cv::Matx34d P1)
 {
     double wi = 1, wi1 = 1;
     cv::Mat_<double> X(4, 1);
 
-    cv::Mat_<double> X_ = cvLinearLSTriangulation(u, P, u1, P1);
+    cv::Mat_<double> X_ = linear_ls_triangulation(u, P, u1, P1);
     X(0) = X_(0);
     X(1) = X_(1);
     X(2) = X_(2);
@@ -87,15 +87,15 @@ cv::Mat_<double> cvIterativeLinearLSTriangulation(cv::Point3d u, cv::Matx34d P, 
     return X;
 }
 
-void cv3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T)
+void estimate_3d_affine(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T)
 {
     /*Find the scale by finding the ratio of some distances*/
     int commonSize = src.size();
     double dist_src = 0, dist_dst = 0, scale;
     for (int i = 0; i < commonSize - 1; i++)
     {
-        dist_src += norm_2d(src[i], src[i + 1]);
-        dist_dst += norm_2d(dst[i], dst[i + 1]);
+        dist_src += get_euclid_distance(src[i], src[i + 1]);
+        dist_dst += get_euclid_distance(dst[i], dst[i + 1]);
     }
     scale = dist_dst / dist_src;
 
@@ -150,9 +150,9 @@ void cv3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d>
          scale * (centroid_dst.z - centroid_src.z));
 }
 
-void cvIterative3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T)
+void estimate_iterative_3d_affine(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T)
 {
-    cv3DAffineEstimation(src, dst, R, T);
+    estimate_3d_affine(src, dst, R, T);
 
     for (int i = 0; i < 10; i++)
     {
@@ -167,7 +167,7 @@ void cvIterative3DAffineEstimation(std::vector<cv::Point3d> src, std::vector<cv:
         }
 
         cv::Mat_<double> R_, T_;
-        cv3DAffineEstimation(src_, dst, R_, T_);
+        estimate_3d_affine(src_, dst, R_, T_);
         R = R_ * R;
         T = R_ * T + T_;
 

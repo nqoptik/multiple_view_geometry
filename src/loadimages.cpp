@@ -1,6 +1,6 @@
 #include "multiple_view_geometry/loadimages.hpp"
 
-std::string intToImageName(int number, std::string extenstion)
+std::string int_to_image_name(int number, std::string extenstion)
 {
     std::string imgName;
     if (number < 10)
@@ -24,13 +24,13 @@ std::string intToImageName(int number, std::string extenstion)
     return imgName;
 }
 
-std::vector<cv::Mat> loadImages(std::string path, int first, int last)
+std::vector<cv::Mat> load_images(std::string path, int first, int last)
 {
     std::vector<cv::Mat> images;
     for (int i = first; i <= last; i++)
     {
         std::string imgPath = path;
-        std::string imgName = intToImageName(i, ".png");
+        std::string imgName = int_to_image_name(i, ".png");
         imgPath.append(imgName);
         cv::Mat image = cv::imread(imgPath);
         if (image.empty())

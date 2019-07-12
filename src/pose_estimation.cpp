@@ -30,8 +30,8 @@ struct PointInCL
 };
 
 /*Function headers*/
-void importModel(std::vector<PointInCL>& cloud, std::string path);
-void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int first, int last);
+void import_model(std::vector<PointInCL>& cloud, std::string path);
+void recognite_object(std::vector<PointInCL> glbCloud, std::string path, int first, int last);
 
 /*Main function*/
 int main()
@@ -39,13 +39,13 @@ int main()
     std::vector<PointInCL> glbCloud;
 
     std::cout << "Pose estimation." << std::endl;
-    importModel(glbCloud, "cloud.data");
-    objectRecognition(glbCloud, "nestcafe_test/", 0, 150);
+    import_model(glbCloud, "cloud.data");
+    recognite_object(glbCloud, "nestcafe_test/", 0, 150);
 
     return 0;
 }
 
-void importModel(std::vector<PointInCL>& cloud, std::string path)
+void import_model(std::vector<PointInCL>& cloud, std::string path)
 {
     cloud.clear();
     const char* path_str = path.c_str();
@@ -81,7 +81,7 @@ void importModel(std::vector<PointInCL>& cloud, std::string path)
     }
 }
 
-void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int first, int last)
+void recognite_object(std::vector<PointInCL> glbCloud, std::string path, int first, int last)
 {
     cv::Mat cloudDes;
     std::vector<cv::KeyPoint> cloudKp;
@@ -167,7 +167,7 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
     {
         std::cout << "Detecting..." << std::endl;
         std::string imgPath = path;
-        std::string imgName = intToImageName(i, ".png");
+        std::string imgName = int_to_image_name(i, ".png");
         imgPath.append(imgName);
         cv::Mat newFrame = cv::imread(imgPath);
         if (newFrame.empty())
@@ -182,10 +182,10 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
 
         std::vector<std::vector<cv::DMatch>> matches;
         std::vector<float> ratios, sortedRatios;
-        FLANNMatchDescriptors(cloudDes, desFrame, matches, ratios, sortedRatios);
+        flann_match_descriptors(cloudDes, desFrame, matches, ratios, sortedRatios);
 
         std::vector<cv::DMatch> corMatches;
-        chooseMatches(matches, ratios, sortedRatios, 100, corMatches);
+        choose_matches(matches, ratios, sortedRatios, 100, corMatches);
         double t3 = clock();
         std::vector<cv::Point3d> p3ds;
         std::vector<cv::Point2d> p2ds;
@@ -226,7 +226,7 @@ void objectRecognition(std::vector<PointInCL> glbCloud, std::string path, int fi
                 cv::Mat_<double> P2D = detectingCamera * PRT * P3D;
                 cv::Point2d p2d = cv::Point2d(P2D.at<double>(0, 0) / P2D.at<double>(2, 0),
                                               P2D.at<double>(1, 0) / P2D.at<double>(2, 0));
-                double reproError = norm_2d(p2d, p2ds[i]);
+                double reproError = get_euclid_distance(p2d, p2ds[i]);
 
                 if (reproError < 2.0)
                 {

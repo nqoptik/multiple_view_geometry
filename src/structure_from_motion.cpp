@@ -41,13 +41,13 @@ struct PointInCL
 };
 
 /*Function headers*/
-void modelRegistration(std::vector<PointInCL>& glbCloud, std::string path, int first, int last);
-void getMultipleClouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::vector<PointInCL>& cloud);
-void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatch>> BFMatches, std::vector<float> BFRatios, std::vector<float> BFSortedRatios, std::vector<cv::DMatch> samplingMatches, int idx_0, int idx_1, cv::Mat_<double>& bestR, cv::Mat_<double>& bestT);
-void jointClouds(std::vector<std::vector<PointInCL>> mtpclouds, std::vector<PointInCL>& glbCloud);
-void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> pts_1, cv::Mat_<double> R, cv::Mat_<double> T, double& errorRate, int& worstIdx, double& quantity);
-void drawCloud(std::vector<PointInCL> cloud, std::string path);
-void exportModel(std::vector<PointInCL> cloud, std::string path);
+void register_model(std::vector<PointInCL>& glbCloud, std::string path, int first, int last);
+void get_multiple_clouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::vector<PointInCL>& cloud);
+void find_rotation_translation_matrices(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatch>> BFMatches, std::vector<float> BFRatios, std::vector<float> BFSortedRatios, std::vector<cv::DMatch> samplingMatches, int idx_0, int idx_1, cv::Mat_<double>& bestR, cv::Mat_<double>& bestT);
+void merge_clouds(std::vector<std::vector<PointInCL>> mtpclouds, std::vector<PointInCL>& glbCloud);
+void estimate_error_rate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> pts_1, cv::Mat_<double> R, cv::Mat_<double> T, double& errorRate, int& worstIdx, double& quantity);
+void draw_cloud(std::vector<PointInCL> cloud, std::string path);
+void export_model(std::vector<PointInCL> cloud, std::string path);
 
 /*Main function*/
 int main()
@@ -55,16 +55,16 @@ int main()
     std::vector<PointInCL> glbCloud;
 
     std::cout << "3D recontruction." << std::endl;
-    modelRegistration(glbCloud, "nestcafe_build/", 0, 50);
-    drawCloud(glbCloud, "output/pointCL.ply");
-    exportModel(glbCloud, "cloud.data");
+    register_model(glbCloud, "nestcafe_build/", 0, 50);
+    draw_cloud(glbCloud, "output/pointCL.ply");
+    export_model(glbCloud, "cloud.data");
 
     return 0;
 }
 
-void modelRegistration(std::vector<PointInCL>& glbCloud, std::string path, int first, int last)
+void register_model(std::vector<PointInCL>& glbCloud, std::string path, int first, int last)
 {
-    std::vector<cv::Mat> images = loadImages(path, first, last);
+    std::vector<cv::Mat> images = load_images(path, first, last);
     std::cout << "Number of images: " << images.size() << std::endl;
 
     /*Detect key points and compute descriptors*/
@@ -89,7 +89,7 @@ void modelRegistration(std::vector<PointInCL>& glbCloud, std::string path, int f
     for (unsigned int i = 0; i < iifs.size() - 1; i++)
     {
         std::vector<PointInCL> cloud;
-        getMultipleClouds(iifs, i, i + 1, cloud);
+        get_multiple_clouds(iifs, i, i + 1, cloud);
         if (cloud.size() < 50)
         {
             std::cout << "Can't reconstruct from image " << i << std::endl;
@@ -98,28 +98,28 @@ void modelRegistration(std::vector<PointInCL>& glbCloud, std::string path, int f
         std::string outPath = "output/pointCL_";
         outPath.append(std::to_string(i));
         outPath.append(".ply");
-        drawCloud(cloud, outPath);
+        draw_cloud(cloud, outPath);
         mtpClouds.push_back(cloud);
     }
 
     /*Joint clouds to global cloud*/
-    jointClouds(mtpClouds, glbCloud);
+    merge_clouds(mtpClouds, glbCloud);
 }
 
-void getMultipleClouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::vector<PointInCL>& cloud)
+void get_multiple_clouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::vector<PointInCL>& cloud)
 {
     std::vector<std::vector<cv::DMatch>> BFMatches;
     std::vector<float> BFRatios, BFSortedRatios;
-    BFMatchDescriptors(iifs[idx_0].des, iifs[idx_1].des, BFMatches, BFRatios,
-                       BFSortedRatios);
+    brute_force_match_descriptors(iifs[idx_0].des, iifs[idx_1].des, BFMatches, BFRatios,
+                                  BFSortedRatios);
     std::vector<cv::DMatch> samplingMatches;
-    chooseMatches(BFMatches, BFRatios, BFSortedRatios, noSamplingMatches,
-                  samplingMatches);
+    choose_matches(BFMatches, BFRatios, BFSortedRatios, noSamplingMatches,
+                   samplingMatches);
 
     /*Find the best R, T*/
     cv::Mat_<double> bestR, bestT;
-    findTheBestRT(iifs, BFMatches, BFRatios, BFSortedRatios, samplingMatches,
-                  idx_0, idx_1, bestR, bestT);
+    find_rotation_translation_matrices(iifs, BFMatches, BFRatios, BFSortedRatios, samplingMatches,
+                                       idx_0, idx_1, bestR, bestT);
 
     cv::Matx34d P_0(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
     cv::Matx34d P_1 = cv::Matx34d(
@@ -150,7 +150,7 @@ void getMultipleClouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::v
         cv::Mat_<double> um_1 = buidingCamera.inv() * cv::Mat_<double>(u_1);
         u_0 = cv::Point3d(um_0.at<double>(0, 0), um_0.at<double>(1, 0), um_0.at<double>(2, 0));
         u_1 = cv::Point3d(um_1.at<double>(0, 0), um_1.at<double>(1, 0), um_1.at<double>(2, 0));
-        cv::Mat_<double> point3d = cvIterativeLinearLSTriangulation(u_0, P_0, u_1, P_1);
+        cv::Mat_<double> point3d = iterative_linear_ls_triangulation(u_0, P_0, u_1, P_1);
         pICL.position = cv::Point3d(point3d(0), point3d(1), point3d(2));
         pICL.r = iifs[idx_0].img.at<cv::Vec3b>((int)point_0.y, (int)point_0.x)[2];
         pICL.g = iifs[idx_0].img.at<cv::Vec3b>((int)point_0.y, (int)point_0.x)[1];
@@ -177,7 +177,7 @@ void getMultipleClouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::v
         cv::Mat_<double> x = buidingCamera * PRT * X;
         cv::Point2d reprojectedPoint(x.at<double>(0, 0) / x.at<double>(2, 0),
                                      x.at<double>(1, 0) / x.at<double>(2, 0));
-        double projectError = norm_2d(reprojectedPoint, p2ds[i]);
+        double projectError = get_euclid_distance(reprojectedPoint, p2ds[i]);
 
         if ((projectError < reprojectingThreshold) &&
             (tempPCL[i].position.z > -10) &&
@@ -206,7 +206,7 @@ void getMultipleClouds(std::vector<ImgInfos>& iifs, int idx_0, int idx_1, std::v
     cv::imwrite(correctMathcesPath, img_correctMatches);
 }
 
-void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatch>> BFMatches, std::vector<float> BFRatios, std::vector<float> BFSortedRatios, std::vector<cv::DMatch> samplingMatches, int idx_0, int idx_1, cv::Mat_<double>& bestR, cv::Mat_<double>& bestT)
+void find_rotation_translation_matrices(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatch>> BFMatches, std::vector<float> BFRatios, std::vector<float> BFSortedRatios, std::vector<cv::DMatch> samplingMatches, int idx_0, int idx_1, cv::Mat_<double>& bestR, cv::Mat_<double>& bestT)
 {
     cv::Matx34d P_0(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
     int max_NoGoodPoints = 0;
@@ -214,7 +214,7 @@ void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatc
     for (unsigned int loop = 8; loop < noConsideringMatches; loop++)
     {
         std::vector<cv::DMatch> consideringMatches;
-        chooseMatches(BFMatches, BFRatios, BFSortedRatios, loop, consideringMatches);
+        choose_matches(BFMatches, BFRatios, BFSortedRatios, loop, consideringMatches);
         if (consideringMatches.size() < 20)
         {
             continue;
@@ -259,7 +259,7 @@ void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatc
             cv::Mat_<double> um_1 = buidingCamera.inv() * cv::Mat_<double>(u_1);
             u_0 = cv::Point3d(um_0.at<double>(0, 0), um_0.at<double>(1, 0), um_0.at<double>(2, 0));
             u_1 = cv::Point3d(um_1.at<double>(0, 0), um_1.at<double>(1, 0), um_1.at<double>(2, 0));
-            cv::Mat_<double> point3d = cvIterativeLinearLSTriangulation(u_0, P_0, u_1, P_1);
+            cv::Mat_<double> point3d = iterative_linear_ls_triangulation(u_0, P_0, u_1, P_1);
 
             p3ds.push_back(cv::Point3d(point3d(0), point3d(1), point3d(2)));
             p2ds.push_back(iifs[idx_1].kp[samplingMatches[i].trainIdx].pt);
@@ -278,7 +278,7 @@ void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatc
             cv::Mat_<double> x = buidingCamera * PRT * X;
             cv::Point2d reprojectedPoint(x.at<double>(0, 0) / x.at<double>(2, 0),
                                          x.at<double>(1, 0) / x.at<double>(2, 0));
-            double projectError = norm_2d(reprojectedPoint, p2ds[i]);
+            double projectError = get_euclid_distance(reprojectedPoint, p2ds[i]);
             if ((projectError < reprojectingThreshold) &&
                 (p3ds[i].z > -10) &&
                 (p3ds[i].z < 0))
@@ -304,7 +304,7 @@ void findTheBestRT(std::vector<ImgInfos> iifs, std::vector<std::vector<cv::DMatc
     std::cout << "Number of good matches: " << max_NoGoodPoints << ". Best loop: " << bestLoop << std::endl;
 }
 
-void jointClouds(std::vector<std::vector<PointInCL>> mtpclouds, std::vector<PointInCL>& glbCloud)
+void merge_clouds(std::vector<std::vector<PointInCL>> mtpclouds, std::vector<PointInCL>& glbCloud)
 {
     glbCloud = mtpclouds[0];
     for (unsigned int loop = 1; loop < mtpclouds.size(); loop++)
@@ -333,12 +333,12 @@ void jointClouds(std::vector<std::vector<PointInCL>> mtpclouds, std::vector<Poin
 
         for (;;)
         {
-            cvIterative3DAffineEstimation(pts_1, pts_0, R, T);
+            estimate_iterative_3d_affine(pts_1, pts_0, R, T);
 
             /*Estimate error rate of R and T*/
             double quantity;
             int worstIdx;
-            estimateErrorRate(pts_0, pts_1, R, T, errorRate, worstIdx, quantity);
+            estimate_error_rate(pts_0, pts_1, R, T, errorRate, worstIdx, quantity);
             if (quantity > 2)
             {
                 pts_1.erase(pts_1.begin() + worstIdx);
@@ -364,7 +364,7 @@ void jointClouds(std::vector<std::vector<PointInCL>> mtpclouds, std::vector<Poin
     }
 }
 
-void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> pts_1, cv::Mat_<double> R, cv::Mat_<double> T, double& errorRate, int& worstIdx, double& quantity)
+void estimate_error_rate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> pts_1, cv::Mat_<double> R, cv::Mat_<double> T, double& errorRate, int& worstIdx, double& quantity)
 {
     std::vector<cv::Point3d> pts_0_;
     for (unsigned int i = 0; i < pts_1.size(); i++)
@@ -380,7 +380,7 @@ void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> 
     double avgError = 0;
     for (unsigned int i = 0; i < pts_0.size(); i++)
     {
-        avgError += norm_2d(pts_0_[i], pts_0[i]);
+        avgError += get_euclid_distance(pts_0_[i], pts_0[i]);
     }
     avgError /= pts_0.size();
     cv::Point3d centroid(0, 0, 0);
@@ -396,7 +396,7 @@ void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> 
     double avgRange = 0;
     for (unsigned int i = 0; i < pts_0.size(); i++)
     {
-        avgRange += norm_2d(pts_0[i], centroid);
+        avgRange += get_euclid_distance(pts_0[i], centroid);
     }
     avgRange /= pts_0.size();
 
@@ -405,16 +405,16 @@ void estimateErrorRate(std::vector<cv::Point3d> pts_0, std::vector<cv::Point3d> 
     worstIdx = 0;
     for (unsigned int i = 0; i < pts_0.size(); i++)
     {
-        if (norm_2d(pts_0_[i], pts_0[i]) > quantity)
+        if (get_euclid_distance(pts_0_[i], pts_0[i]) > quantity)
         {
-            quantity = norm_2d(pts_0_[i], pts_0[i]);
+            quantity = get_euclid_distance(pts_0_[i], pts_0[i]);
             worstIdx = i;
         }
     }
     quantity = quantity / avgError;
 }
 
-void drawCloud(std::vector<PointInCL> cloud, std::string path)
+void draw_cloud(std::vector<PointInCL> cloud, std::string path)
 {
     std::fstream f;
     const char* path_str = path.c_str();
@@ -439,7 +439,7 @@ void drawCloud(std::vector<PointInCL> cloud, std::string path)
     f.close();
 }
 
-void exportModel(std::vector<PointInCL> cloud, std::string path)
+void export_model(std::vector<PointInCL> cloud, std::string path)
 {
     const char* path_str = path.c_str();
     std::ofstream cloudFile(path_str);
