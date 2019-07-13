@@ -1,6 +1,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <omp.h>
 #include <vector>
 
 #include <opencv2/calib3d/calib3d.hpp>
@@ -211,6 +212,8 @@ void find_rotation_translation_matrices(std::vector<ImgInfos> iifs, std::vector<
     cv::Matx34d P_0(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0);
     int max_NoGoodPoints = 0;
     unsigned int bestLoop = 8;
+
+#pragma omp parallel for
     for (unsigned int loop = 8; loop < noConsideringMatches; loop++)
     {
         std::vector<cv::DMatch> consideringMatches;
