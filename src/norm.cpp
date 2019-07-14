@@ -1,16 +1,16 @@
 #include "multiple_view_geometry/norm.hpp"
 
-double get_euclid_distance(cv::Point2d p1, cv::Point2d p2)
+double get_euclid_distance(cv::Point2d point_1, cv::Point2d point_2)
 {
-    double dx = p2.x - p1.x;
-    double dy = p2.y - p1.y;
-    return sqrt(dx * dx + dy * dy);
+    double d_x = point_2.x - point_1.x;
+    double d_y = point_2.y - point_1.y;
+    return sqrt(d_x * d_x + d_y * d_y);
 }
 
-double get_euclid_distance(cv::Point3d p1, cv::Point3d p2)
+double get_euclid_distance(cv::Point3d point_1, cv::Point3d point_2)
 {
-    double dx = p2.x - p1.x;
-    double dy = p2.y - p1.y;
-    double dz = p2.z - p1.z;
-    return sqrt(dx * dx + dy * dy + dz * dz);
+    double d_x = point_2.x - point_1.x;
+    double d_y = point_2.y - point_1.y;
+    double d_z = point_2.z - point_1.z;
+    return sqrt(d_x * d_x + d_y * d_y + d_z * d_z);
 }

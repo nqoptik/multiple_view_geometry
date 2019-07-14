@@ -53,7 +53,7 @@ cv::Mat_<double> iterative_linear_ls_triangulation(cv::Point3d u, cv::Matx34d P,
     X(2) = X_(2);
     X(3) = 1.0;
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; ++i)
     {
         /*Recalculate weights*/
         double p2x = cv::Mat_<double>(cv::Mat_<double>(P).row(2) * X)(0);
@@ -87,79 +87,79 @@ cv::Mat_<double> iterative_linear_ls_triangulation(cv::Point3d u, cv::Matx34d P,
     return X;
 }
 
-void estimate_3d_affine(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T)
+void estimate_3d_affine(std::vector<cv::Point3d> source, std::vector<cv::Point3d> destination, cv::Mat_<double>& R, cv::Mat_<double>& T)
 {
     /*Find the scale by finding the ratio of some distances*/
-    int commonSize = src.size();
-    double dist_src = 0, dist_dst = 0, scale;
-    for (int i = 0; i < commonSize - 1; i++)
+    int common_size = source.size();
+    double source_distance = 0, destination_distance = 0, scale;
+    for (int i = 0; i < common_size - 1; ++i)
     {
-        dist_src += get_euclid_distance(src[i], src[i + 1]);
-        dist_dst += get_euclid_distance(dst[i], dst[i + 1]);
+        source_distance += get_euclid_distance(source[i], source[i + 1]);
+        destination_distance += get_euclid_distance(destination[i], destination[i + 1]);
     }
-    scale = dist_dst / dist_src;
+    scale = destination_distance / source_distance;
 
     /*Bring point sets to the same scale*/
-    for (int i = 0; i < commonSize; i++)
+    for (int i = 0; i < common_size; ++i)
     {
-        src[i] *= scale;
+        source[i] *= scale;
     }
 
     /*Find the centroids*/
-    cv::Point3d centroid_src(0, 0, 0), centroid_dst(0, 0, 0);
-    for (int i = 0; i < commonSize; i++)
+    cv::Point3d centroid_source(0, 0, 0), centroid_destination(0, 0, 0);
+    for (int i = 0; i < common_size; ++i)
     {
-        centroid_src += src[i];
-        centroid_dst += dst[i];
+        centroid_source += source[i];
+        centroid_destination += destination[i];
     }
 
-    centroid_src.x /= commonSize;
-    centroid_src.y /= commonSize;
-    centroid_src.z /= commonSize;
+    centroid_source.x /= common_size;
+    centroid_source.y /= common_size;
+    centroid_source.z /= common_size;
 
-    centroid_dst.x /= commonSize;
-    centroid_dst.y /= commonSize;
-    centroid_dst.z /= commonSize;
+    centroid_destination.x /= common_size;
+    centroid_destination.y /= common_size;
+    centroid_destination.z /= common_size;
 
     /*Shift to origin*/
-    for (int i = 0; i < commonSize; i++)
+    for (int i = 0; i < common_size; ++i)
     {
-        src[i] -= centroid_src;
-        dst[i] -= centroid_dst;
+        source[i] -= centroid_source;
+        destination[i] -= centroid_destination;
     }
 
     /*Find covariance matrix*/
-    cv::Mat_<double> cor(3, 3);
-    cor.setTo(cv::Scalar::all(0));
-    for (int i = 0; i < commonSize; i++)
+    cv::Mat_<double> covariance_matrix(3, 3);
+    covariance_matrix.setTo(cv::Scalar::all(0));
+    for (int i = 0; i < common_size; ++i)
     {
-        cv::Mat_<double> cor_i = (cv::Mat_<double>(3, 3) << src[i].x * dst[i].x, src[i].x * dst[i].y, src[i].x * dst[i].z,
-                                  src[i].y * dst[i].x, src[i].y * dst[i].y, src[i].y * dst[i].z,
-                                  src[i].z * dst[i].x, src[i].z * dst[i].y, src[i].z * dst[i].z);
-        cor += cor_i;
+        cv::Mat_<double> covariance_matrix_i = (cv::Mat_<double>(3, 3) << source[i].x * destination[i].x, source[i].x * destination[i].y, source[i].x * destination[i].z,
+                                                source[i].y * destination[i].x, source[i].y * destination[i].y, source[i].y * destination[i].z,
+                                                source[i].z * destination[i].x, source[i].z * destination[i].y, source[i].z * destination[i].z);
+        covariance_matrix += covariance_matrix_i;
     }
 
     /*Find rotation using SVD*/
-    cv::SVD svd(cor);
+    cv::SVD svd(covariance_matrix);
     R = svd.vt.t() * svd.u.t();
     R *= scale;
 
     /*Find translation*/
-    T = (cv::Mat_<double>(3, 1) << scale * (centroid_dst.x - centroid_src.x),
-         scale * (centroid_dst.y - centroid_src.y),
-         scale * (centroid_dst.z - centroid_src.z));
+    T = (cv::Mat_<double>(3, 1) << scale * (centroid_destination.x - centroid_source.x),
+         scale * (centroid_destination.y - centroid_source.y),
+         scale * (centroid_destination.z - centroid_source.z));
 }
 
-void estimate_iterative_3d_affine(std::vector<cv::Point3d> src, std::vector<cv::Point3d> dst, cv::Mat_<double>& R, cv::Mat_<double>& T)
+void estimate_iterative_3d_affine(std::vector<cv::Point3d> source, std::vector<cv::Point3d> destination, cv::Mat_<double>& R, cv::Mat_<double>& T)
 {
-    estimate_3d_affine(src, dst, R, T);
+    estimate_3d_affine(source, destination, R, T);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; ++i)
     {
         std::vector<cv::Point3d> src_;
-        for (unsigned int j = 0; j < src.size(); j++)
+        for (size_t j = 0; j < source.size(); ++j)
         {
-            cv::Mat_<double> src_i = (cv::Mat_<double>(3, 1) << src[j].x, src[j].y, src[j].z);
+            cv::Mat_<double> src_i = (cv::Mat_<double>(3, 1) << source[j].x, source[j].y, source[j].z);
             cv::Mat_<double> dst_i = R * src_i + T;
             src_.push_back(cv::Point3d(dst_i.at<double>(0, 0),
                                        dst_i.at<double>(1, 0),
@@ -167,7 +167,7 @@ void estimate_iterative_3d_affine(std::vector<cv::Point3d> src, std::vector<cv::
         }
 
         cv::Mat_<double> R_, T_;
-        estimate_3d_affine(src_, dst, R_, T_);
+        estimate_3d_affine(src_, destination, R_, T_);
         R = R_ * R;
         T = R_ * T + T_;
 

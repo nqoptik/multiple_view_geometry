@@ -1,42 +1,54 @@
 #include "multiple_view_geometry/featuresmatching.hpp"
 
-void brute_force_match_descriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv::DMatch>>& matches, std::vector<float>& ratios, std::vector<float>& sortedRatios)
+void brute_force_match_descriptors(cv::Mat descriptors_0,
+                                   cv::Mat descriptors_1,
+                                   std::vector<std::vector<cv::DMatch>>& matches,
+                                   std::vector<float>& ratios,
+                                   std::vector<float>& sorted_ratios)
 {
     cv::BFMatcher matcher(cv::NORM_L2);
-    matcher.knnMatch(des_0, des_1, matches, 2);
+    matcher.knnMatch(descriptors_0, descriptors_1, matches, 2);
 
-    for (unsigned int i = 0; i < matches.size(); i++)
+    for (size_t i = 0; i < matches.size(); ++i)
     {
         ratios.push_back(matches[i][0].distance / matches[i][1].distance);
     }
 
-    sortedRatios = ratios;
-    std::sort(sortedRatios.begin(), sortedRatios.end());
+    sorted_ratios = ratios;
+    std::sort(sorted_ratios.begin(), sorted_ratios.end());
 }
 
-void flann_match_descriptors(cv::Mat des_0, cv::Mat des_1, std::vector<std::vector<cv::DMatch>>& matches, std::vector<float>& ratios, std::vector<float>& sortedRatios)
+void flann_match_descriptors(cv::Mat descriptors_0,
+                             cv::Mat descriptors_1,
+                             std::vector<std::vector<cv::DMatch>>& matches,
+                             std::vector<float>& ratios,
+                             std::vector<float>& sorted_ratios)
 {
     cv::FlannBasedMatcher matcher;
-    matcher.knnMatch(des_0, des_1, matches, 2);
+    matcher.knnMatch(descriptors_0, descriptors_1, matches, 2);
 
-    for (unsigned int i = 0; i < matches.size(); i++)
+    for (size_t i = 0; i < matches.size(); ++i)
     {
         ratios.push_back(matches[i][0].distance / matches[i][1].distance);
     }
 
-    sortedRatios = ratios;
-    std::sort(sortedRatios.begin(), sortedRatios.end());
+    sorted_ratios = ratios;
+    std::sort(sorted_ratios.begin(), sorted_ratios.end());
 }
 
-void choose_matches(std::vector<std::vector<cv::DMatch>> matches, std::vector<float> ratios, std::vector<float> sortedRatios, unsigned int noMatches, std::vector<cv::DMatch>& acceptedMatches)
+void choose_matches(std::vector<std::vector<cv::DMatch>> matches,
+                    std::vector<float> ratios,
+                    std::vector<float> sorted_ratios,
+                    size_t number_of_matches,
+                    std::vector<cv::DMatch>& accepted_matches)
 {
-    acceptedMatches.clear();
-    float acceptedRatio = sortedRatios[MIN(noMatches - 1, sortedRatios.size() - 1)];
-    for (unsigned int i = 0; i < matches.size(); i++)
+    accepted_matches.clear();
+    float accepted_ratio = sorted_ratios[MIN(number_of_matches - 1, sorted_ratios.size() - 1)];
+    for (size_t i = 0; i < matches.size(); ++i)
     {
-        if (ratios[i] <= acceptedRatio)
+        if (ratios[i] <= accepted_ratio)
         {
-            acceptedMatches.push_back(matches[i][0]);
+            accepted_matches.push_back(matches[i][0]);
         }
     }
 }
