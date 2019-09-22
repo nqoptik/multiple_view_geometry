@@ -14,9 +14,12 @@ make
 ```
 
 ## Run project
-Copy test data to build folder:
+Clone and copy test data to build folder:
 ```
-cp -r ../../computer_vision_basics_data/multiple_view_geometry/build/* .
+cd ../../
+git clone https://github.com/nqoptik/computer_vision_data.git
+cd multiple_view_geometry/build/
+cp -r ../../computer_vision_data/multiple_view_geometry/build/* .
 ```
 
 Create output folders:
